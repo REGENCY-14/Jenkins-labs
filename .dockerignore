@@ -1,0 +1,15 @@
+# Ignore build output — tests run fresh inside the container
+target/
+
+# Git metadata
+.git/
+.gitignore
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# OS noise
+.DS_Store
+Thumbs.db
