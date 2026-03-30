@@ -15,6 +15,11 @@ pipeline {
         timestamps()
     }
 
+    triggers {
+        // Trigger pipeline automatically on GitHub push via webhook
+        githubPush()
+    }
+
     stages {
 
         stage('Checkout') {
