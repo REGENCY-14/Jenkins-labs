@@ -78,5 +78,6 @@ docker-compose up --build
 - [x] Phase 3 — Dockerization
 - [x] Phase 4 — Jenkins setup (see [docs/jenkins-setup.md](docs/jenkins-setup.md))
 - [x] Phase 5 — Jenkins pipeline (see [Jenkinsfile](Jenkinsfile))
-- [ ] Phase 6 — Reporting & notifications
+- [ ] Phase 6 — Webhook integration (see [docs/webhook-setup.md](docs/webhook-setup.md))
+
 
