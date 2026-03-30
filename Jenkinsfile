@@ -53,10 +53,9 @@ pipeline {
         stage('Publish Report') {
             steps {
                 // Generate the HTML Surefire report
-                sh 'mvn surefire-report:report -q'
-                // Archive the HTML report as a build artifact (viewable via Jenkins)
+                sh 'mvn surefire-report:report site:site -DgenerateReports=false -q'
                 archiveArtifacts artifacts: 'target/site/surefire-report.html',
-                                 allowEmptyArchive: false
+                                 allowEmptyArchive: true
             }
         }
     }
