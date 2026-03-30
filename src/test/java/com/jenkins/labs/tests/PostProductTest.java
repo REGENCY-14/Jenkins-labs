@@ -23,14 +23,14 @@ public class PostProductTest extends BaseTest {
     }
 
     @Test
-    public void postProduct_shouldReturn200() {
+    public void postProduct_shouldReturn201() {
         given()
             .contentType(ContentType.JSON)
             .body(newProductJson())
             .when()
                 .post("/products")
             .then()
-                .statusCode(200);
+                .statusCode(201);
     }
 
     @Test
@@ -41,7 +41,7 @@ public class PostProductTest extends BaseTest {
             .when()
                 .post("/products")
             .then()
-                .statusCode(200)
+                .statusCode(201)
                 .body("id", notNullValue());
     }
 
@@ -53,7 +53,7 @@ public class PostProductTest extends BaseTest {
             .when()
                 .post("/products")
             .then()
-                .statusCode(200)
+                .statusCode(201)
                 .extract().response();
 
         assertEquals("Test Product", response.jsonPath().getString("title"));
@@ -63,14 +63,14 @@ public class PostProductTest extends BaseTest {
 
     @Test
     public void postProduct_emptyBody_shouldStillRespond() {
-        // FakeStoreAPI is lenient — it still returns 200 with an id
+        // FakeStoreAPI is lenient — it still returns 201 with an id
         given()
             .contentType(ContentType.JSON)
             .body("{}")
             .when()
                 .post("/products")
             .then()
-                .statusCode(200)
+                .statusCode(201)
                 .body("id", notNullValue());
     }
 }

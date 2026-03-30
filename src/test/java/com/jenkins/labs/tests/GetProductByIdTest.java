@@ -68,8 +68,8 @@ public class GetProductByIdTest extends BaseTest {
     }
 
     @Test
-    public void getProductById_invalidId_shouldReturnNull() {
-        // FakeStoreAPI returns null body for non-existent products
+    public void getProductById_invalidId_shouldReturnEmptyBody() {
+        // FakeStoreAPI returns 200 with empty body for non-existent products
         Response response = given()
             .pathParam("id", INVALID_PRODUCT_ID)
             .when()
@@ -77,8 +77,9 @@ public class GetProductByIdTest extends BaseTest {
             .then()
                 .extract().response();
 
-        // API returns 200 with null for unknown IDs
         assertEquals(200, response.statusCode());
-        assertEquals("null", response.getBody().asString());
+        assertTrue("Body should be empty or null",
+            response.getBody().asString().isEmpty() ||
+            response.getBody().asString().equals("null"));
     }
 }
