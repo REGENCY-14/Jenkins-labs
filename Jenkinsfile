@@ -54,18 +54,9 @@ pipeline {
             steps {
                 // Generate the HTML Surefire report
                 sh 'mvn surefire-report:report -q'
-            }
-            post {
-                always {
-                    publishHTML(target: [
-                        allowMissing         : false,
-                        alwaysLinkToLastBuild: true,
-                        keepAll              : true,
-                        reportDir            : 'target/site',
-                        reportFiles          : 'surefire-report.html',
-                        reportName           : 'API Test Report'
-                    ])
-                }
+                // Archive the HTML report as a build artifact (viewable via Jenkins)
+                archiveArtifacts artifacts: 'target/site/surefire-report.html',
+                                 allowEmptyArchive: false
             }
         }
     }
