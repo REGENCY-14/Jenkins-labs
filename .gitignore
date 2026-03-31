@@ -1,0 +1,14 @@
+# Maven build output
+target/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+*.classpath
+*.project
+.settings/
+
+# OS noise
+.DS_Store
+Thumbs.db
