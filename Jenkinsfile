@@ -69,41 +69,48 @@ pipeline {
         success {
             echo "All tests passed. Build #${env.BUILD_NUMBER} succeeded."
             script {
-                def tr = currentBuild.testResultAction
-                def total  = tr ? tr.totalCount : 0
-                def failed = tr ? tr.failCount   : 0
-                def passed = tr ? (tr.totalCount - tr.failCount - tr.skipCount) : 0
-                def skipped = tr ? tr.skipCount  : 0
+                def total = 0, failed = 0, skipped = 0
+                try {
+                    def files = findFiles(glob: 'target/surefire-reports/TEST-*.xml')
+                    files.each { f ->
+                        def xml = readFile(f.path)
+                        def matcher = xml =~ /tests="(\d+)"/
+                        if (matcher) total += matcher[0][1].toInteger()
+                        matcher = xml =~ /failures="(\d+)"/
+                        if (matcher) failed += matcher[0][1].toInteger()
+                        matcher = xml =~ /skipped="(\d+)"/
+                        if (matcher) skipped += matcher[0][1].toInteger()
+                    }
+                } catch (e) { echo "Could not parse test results: ${e.message}" }
+                def passed = total - failed - skipped
                 slackSend(
                     channel: '#jenkins-builds',
                     color: 'good',
-                    message: """
-*BUILD PASSED* :white_check_mark:
-*Job:* ${env.JOB_NAME} | *Build:* #${env.BUILD_NUMBER} | *Branch:* ${env.BRANCH_NAME ?: 'main'}
-*Tests:* ${total} run | ${passed} passed | ${failed} failed | ${skipped} skipped
-*Details:* ${env.BUILD_URL}
-                    """.stripIndent().trim()
+                    message: "*BUILD PASSED* :white_check_mark:\n*Job:* ${env.JOB_NAME} | *Build:* #${env.BUILD_NUMBER} | *Branch:* ${env.BRANCH_NAME ?: 'main'}\n*Tests:* ${total} run | ${passed} passed | ${failed} failed | ${skipped} skipped\n*Details:* ${env.BUILD_URL}"
                 )
             }
         }
         failure {
             echo "Build #${env.BUILD_NUMBER} failed. Check the test report for details."
             script {
-                def tr = currentBuild.testResultAction
-                def total   = tr ? tr.totalCount : 0
-                def failed  = tr ? tr.failCount  : 0
-                def passed  = tr ? (tr.totalCount - tr.failCount - tr.skipCount) : 0
-                def skipped = tr ? tr.skipCount  : 0
+                def total = 0, failed = 0, skipped = 0
+                try {
+                    def files = findFiles(glob: 'target/surefire-reports/TEST-*.xml')
+                    files.each { f ->
+                        def xml = readFile(f.path)
+                        def matcher = xml =~ /tests="(\d+)"/
+                        if (matcher) total += matcher[0][1].toInteger()
+                        matcher = xml =~ /failures="(\d+)"/
+                        if (matcher) failed += matcher[0][1].toInteger()
+                        matcher = xml =~ /skipped="(\d+)"/
+                        if (matcher) skipped += matcher[0][1].toInteger()
+                    }
+                } catch (e) { echo "Could not parse test results: ${e.message}" }
+                def passed = total - failed - skipped
                 slackSend(
                     channel: '#jenkins-builds',
                     color: 'danger',
-                    message: """
-*BUILD FAILED* :x:
-*Job:* ${env.JOB_NAME} | *Build:* #${env.BUILD_NUMBER} | *Branch:* ${env.BRANCH_NAME ?: 'main'}
-*Tests:* ${total} run | ${passed} passed | ${failed} failed | ${skipped} skipped
-*Details:* ${env.BUILD_URL}
-*Console:* ${env.BUILD_URL}console
-                    """.stripIndent().trim()
+                    message: "*BUILD FAILED* :x:\n*Job:* ${env.JOB_NAME} | *Build:* #${env.BUILD_NUMBER} | *Branch:* ${env.BRANCH_NAME ?: 'main'}\n*Tests:* ${total} run | ${passed} passed | ${failed} failed | ${skipped} skipped\n*Details:* ${env.BUILD_URL}\n*Console:* ${env.BUILD_URL}console"
                 )
             }
         }
