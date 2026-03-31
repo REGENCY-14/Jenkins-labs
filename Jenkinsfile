@@ -68,33 +68,36 @@ pipeline {
     post {
         success {
             echo "All tests passed. Build #${env.BUILD_NUMBER} succeeded."
-            slackSend(
-                channel: '#jenkins-builds',
-                color: 'good',
-                message: """
+            script {
+                def summary = junit testResults: 'target/surefire-reports/*.xml', allowEmptyResults: true
+                slackSend(
+                    channel: '#jenkins-builds',
+                    color: 'good',
+                    message: """
 *BUILD PASSED* :white_check_mark:
-*Job:* ${env.JOB_NAME}
-*Build:* #${env.BUILD_NUMBER}
-*Branch:* ${env.BRANCH_NAME ?: 'main'}
-*Tests:* All passed
+*Job:* ${env.JOB_NAME} | *Build:* #${env.BUILD_NUMBER} | *Branch:* ${env.BRANCH_NAME ?: 'main'}
+*Tests:* ${summary.totalCount} run | ${summary.passCount} passed | ${summary.failCount} failed | ${summary.skipCount} skipped
 *Details:* ${env.BUILD_URL}
-                """.stripIndent().trim()
-            )
+                    """.stripIndent().trim()
+                )
+            }
         }
         failure {
             echo "Build #${env.BUILD_NUMBER} failed. Check the test report for details."
-            slackSend(
-                channel: '#jenkins-builds',
-                color: 'danger',
-                message: """
+            script {
+                def summary = junit testResults: 'target/surefire-reports/*.xml', allowEmptyResults: true
+                slackSend(
+                    channel: '#jenkins-builds',
+                    color: 'danger',
+                    message: """
 *BUILD FAILED* :x:
-*Job:* ${env.JOB_NAME}
-*Build:* #${env.BUILD_NUMBER}
-*Branch:* ${env.BRANCH_NAME ?: 'main'}
+*Job:* ${env.JOB_NAME} | *Build:* #${env.BUILD_NUMBER} | *Branch:* ${env.BRANCH_NAME ?: 'main'}
+*Tests:* ${summary.totalCount} run | ${summary.passCount} passed | ${summary.failCount} failed | ${summary.skipCount} skipped
 *Details:* ${env.BUILD_URL}
 *Console:* ${env.BUILD_URL}console
-                """.stripIndent().trim()
-            )
+                    """.stripIndent().trim()
+                )
+            }
         }
         always {
             // Clean workspace after build to save disk space
