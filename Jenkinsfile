@@ -69,20 +69,10 @@ pipeline {
         success {
             echo "All tests passed. Build #${env.BUILD_NUMBER} succeeded."
             script {
-                def total = 0, failed = 0, skipped = 0
-                try {
-                    def files = findFiles(glob: 'target/surefire-reports/TEST-*.xml')
-                    files.each { f ->
-                        def xml = readFile(f.path)
-                        def matcher = xml =~ /tests="(\d+)"/
-                        if (matcher) total += matcher[0][1].toInteger()
-                        matcher = xml =~ /failures="(\d+)"/
-                        if (matcher) failed += matcher[0][1].toInteger()
-                        matcher = xml =~ /skipped="(\d+)"/
-                        if (matcher) skipped += matcher[0][1].toInteger()
-                    }
-                } catch (e) { echo "Could not parse test results: ${e.message}" }
-                def passed = total - failed - skipped
+                def total   = sh(script: "grep -h 'tests=' target/surefire-reports/TEST-*.xml | grep -oP 'tests=\"\\K[0-9]+' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
+                def failed  = sh(script: "grep -h 'failures=' target/surefire-reports/TEST-*.xml | grep -oP 'failures=\"\\K[0-9]+' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
+                def skipped = sh(script: "grep -h 'skipped=' target/surefire-reports/TEST-*.xml | grep -oP 'skipped=\"\\K[0-9]+' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
+                def passed  = (total.toInteger() - failed.toInteger() - skipped.toInteger()).toString()
                 slackSend(
                     channel: '#jenkins-builds',
                     color: 'good',
@@ -93,20 +83,10 @@ pipeline {
         failure {
             echo "Build #${env.BUILD_NUMBER} failed. Check the test report for details."
             script {
-                def total = 0, failed = 0, skipped = 0
-                try {
-                    def files = findFiles(glob: 'target/surefire-reports/TEST-*.xml')
-                    files.each { f ->
-                        def xml = readFile(f.path)
-                        def matcher = xml =~ /tests="(\d+)"/
-                        if (matcher) total += matcher[0][1].toInteger()
-                        matcher = xml =~ /failures="(\d+)"/
-                        if (matcher) failed += matcher[0][1].toInteger()
-                        matcher = xml =~ /skipped="(\d+)"/
-                        if (matcher) skipped += matcher[0][1].toInteger()
-                    }
-                } catch (e) { echo "Could not parse test results: ${e.message}" }
-                def passed = total - failed - skipped
+                def total   = sh(script: "grep -h 'tests=' target/surefire-reports/TEST-*.xml 2>/dev/null | grep -oP 'tests=\"\\K[0-9]+' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
+                def failed  = sh(script: "grep -h 'failures=' target/surefire-reports/TEST-*.xml 2>/dev/null | grep -oP 'failures=\"\\K[0-9]+' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
+                def skipped = sh(script: "grep -h 'skipped=' target/surefire-reports/TEST-*.xml 2>/dev/null | grep -oP 'skipped=\"\\K[0-9]+' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
+                def passed  = (total.toInteger() - failed.toInteger() - skipped.toInteger()).toString()
                 slackSend(
                     channel: '#jenkins-builds',
                     color: 'danger',
