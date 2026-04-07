@@ -9,9 +9,25 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 
+/**
+ * PostProductTest - Test suite for the POST /products endpoint.
+ *
+ * <p>Validates that creating a new product returns the correct status code,
+ * a generated ID, and echoes back the submitted fields. Also tests the API's
+ * lenient behaviour when an empty body is submitted.</p>
+ *
+ * <p>Endpoint: {@code POST https://fakestoreapi.com/products}</p>
+ *
+ * <p><strong>Note:</strong> The Fake Store API is a mock — it does not persist
+ * data. POST requests simulate creation and return a fake new ID.</p>
+ */
 public class PostProductTest extends BaseTest {
 
-    // Sample product payload
+    /**
+     * Builds a sample JSON product payload used across multiple test methods.
+     *
+     * @return a JSON string representing a new product
+     */
     private String newProductJson() {
         return "{"
             + "\"title\": \"Test Product\","
@@ -22,6 +38,9 @@ public class PostProductTest extends BaseTest {
             + "}";
     }
 
+    /**
+     * Verifies that a valid POST request returns HTTP 201 Created.
+     */
     @Test
     public void postProduct_shouldReturn201() {
         given()
@@ -33,6 +52,11 @@ public class PostProductTest extends BaseTest {
                 .statusCode(201);
     }
 
+    /**
+     * Verifies that the response includes a newly generated {@code id} field.
+     *
+     * <p>The API assigns an ID to the created product and returns it in the response.</p>
+     */
     @Test
     public void postProduct_shouldReturnNewId() {
         given()
@@ -45,8 +69,15 @@ public class PostProductTest extends BaseTest {
                 .body("id", notNullValue());
     }
 
+    /**
+     * Verifies that the API echoes back the fields submitted in the request body.
+     *
+     * <p>Asserts that {@code title}, {@code price}, and {@code category} in the
+     * response match the values that were sent in the request.</p>
+     */
     @Test
     public void postProduct_shouldEchoBackSentFields() {
+        // Extract the full response to assert individual field values
         Response response = given()
             .contentType(ContentType.JSON)
             .body(newProductJson())
@@ -61,12 +92,17 @@ public class PostProductTest extends BaseTest {
         assertEquals("electronics", response.jsonPath().getString("category"));
     }
 
+    /**
+     * Verifies that the API handles an empty JSON body gracefully.
+     *
+     * <p>The Fake Store API is lenient and still returns HTTP 201 with a generated
+     * ID even when no product fields are provided in the request body.</p>
+     */
     @Test
     public void postProduct_emptyBody_shouldStillRespond() {
-        // FakeStoreAPI is lenient — it still returns 201 with an id
         given()
             .contentType(ContentType.JSON)
-            .body("{}")
+            .body("{}")   // empty JSON object — no product fields provided
             .when()
                 .post("/products")
             .then()

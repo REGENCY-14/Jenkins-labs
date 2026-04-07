@@ -1,0 +1,19 @@
+# =============================================================================
+# docker-compose.yml — Jenkins-labs API Test Runner
+# =============================================================================
+# Defines the service used to build and run the API test suite inside Docker.
+# Run with: docker-compose up --build
+# Tear down with: docker-compose down
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # api-tests service
+  # ---------------------------------------------------------------------------
+  # Builds the image from the local Dockerfile and runs mvn clean test.
+  # The container exits after the tests complete (it is not a long-running service).
+  # ---------------------------------------------------------------------------
+  api-tests:
+    build: .                        # build image from Dockerfile in current directory
+    container_name: jenkins-labs-tests  # fixed container name for easy identification
