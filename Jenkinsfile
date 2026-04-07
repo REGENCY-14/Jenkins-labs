@@ -146,112 +146,62 @@ pipeline {
     // =========================================================================
     // Post-build actions
     // =========================================================================
+    // These run after all stages complete, regardless of build outcome.
+    // =========================================================================
     post {
 
+        // ---------------------------------------------------------------------
+        // On success: send a green Slack notification with test counts
+        // ---------------------------------------------------------------------
         success {
             echo "All tests passed. Build #${env.BUILD_NUMBER} succeeded."
             script {
+                // Restore the stashed XML reports so we can parse them
                 unstash 'surefire-reports'
 
+                // Parse test counts from Surefire XML using shell commands
+                // grep targets the <testsuite> element, sed extracts attribute values
                 def total   = sh(script: "grep -h 'testsuite ' target/surefire-reports/TEST-*.xml | sed 's/.*tests=\"//;s/\".*//' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
                 def failed  = sh(script: "grep -h 'testsuite ' target/surefire-reports/TEST-*.xml | sed 's/.*failures=\"//;s/\".*//' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
                 def skipped = sh(script: "grep -h 'testsuite ' target/surefire-reports/TEST-*.xml | sed 's/.*skipped=\"//;s/\".*//' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
                 def passed  = (total.toInteger() - failed.toInteger() - skipped.toInteger()).toString()
 
-                // Calculate build duration in seconds
-                def duration = currentBuild.durationString.replace(' and counting', '')
-
-                // Get the commit message and author from git log
-                def commitMsg    = sh(script: "git log -1 --pretty=%s 2>/dev/null || echo 'N/A'", returnStdout: true).trim()
-                def commitAuthor = sh(script: "git log -1 --pretty=%an 2>/dev/null || echo 'N/A'", returnStdout: true).trim()
-                def commitHash   = sh(script: "git log -1 --pretty=%h 2>/dev/null || echo 'N/A'", returnStdout: true).trim()
-
+                // Send success notification to the #jenkins-builds Slack channel
                 slackSend(
                     channel: '#jenkins-builds',
                     color: 'good',
-                    message: """
-:white_check_mark: *BUILD PASSED* :white_check_mark:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*Job:*      ${env.JOB_NAME}
-*Build:*    #${env.BUILD_NUMBER}
-*Branch:*   ${env.BRANCH_NAME ?: 'main'}
-*Duration:* ${duration}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-:bar_chart: *Test Results*
-• Total:   ${total}
-• Passed:  ${passed} :large_green_circle:
-• Failed:  ${failed} :red_circle:
-• Skipped: ${skipped} :white_circle:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-:git: *Commit*
-• Author:  ${commitAuthor}
-• Message: ${commitMsg}
-• Hash:    \`${commitHash}\`
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-:link: *Links*
-• <${env.BUILD_URL}|Build #${env.BUILD_NUMBER}>
-• <${env.BUILD_URL}testReport|Test Report>
-• <${env.BUILD_URL}console|Console Output>
-                    """.stripIndent().trim()
+                    message: "*BUILD PASSED* :white_check_mark:\n*Job:* ${env.JOB_NAME} | *Build:* #${env.BUILD_NUMBER} | *Branch:* ${env.BRANCH_NAME ?: 'main'}\n*Tests:* ${total} run | ${passed} passed | ${failed} failed | ${skipped} skipped\n*Details:* ${env.BUILD_URL}"
                 )
             }
         }
 
+        // ---------------------------------------------------------------------
+        // On failure: send a red Slack notification with test counts and console link
+        // ---------------------------------------------------------------------
         failure {
-            echo "Build #${env.BUILD_NUMBER} failed."
+            echo "Build #${env.BUILD_NUMBER} failed. Check the test report for details."
             script {
+                // Attempt to restore stashed reports (may not exist if build failed early)
                 try { unstash 'surefire-reports' } catch (e) { echo 'No stash found' }
 
+                // Parse test counts — use 2>/dev/null to suppress errors if files missing
                 def total   = sh(script: "grep -h 'testsuite ' target/surefire-reports/TEST-*.xml 2>/dev/null | sed 's/.*tests=\"//;s/\".*//' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
                 def failed  = sh(script: "grep -h 'testsuite ' target/surefire-reports/TEST-*.xml 2>/dev/null | sed 's/.*failures=\"//;s/\".*//' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
                 def skipped = sh(script: "grep -h 'testsuite ' target/surefire-reports/TEST-*.xml 2>/dev/null | sed 's/.*skipped=\"//;s/\".*//' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
                 def passed  = (total.toInteger() - failed.toInteger() - skipped.toInteger()).toString()
 
-                def duration     = currentBuild.durationString.replace(' and counting', '')
-                def commitMsg    = sh(script: "git log -1 --pretty=%s 2>/dev/null || echo 'N/A'", returnStdout: true).trim()
-                def commitAuthor = sh(script: "git log -1 --pretty=%an 2>/dev/null || echo 'N/A'", returnStdout: true).trim()
-                def commitHash   = sh(script: "git log -1 --pretty=%h 2>/dev/null || echo 'N/A'", returnStdout: true).trim()
-
-                // Extract names of failed tests from XML for quick visibility
-                def failedTests = sh(
-                    script: "grep -h 'testcase.*failure' target/surefire-reports/TEST-*.xml 2>/dev/null | sed 's/.*name=\"//;s/\".*//' | head -5 | sed 's/^/• /' || echo '• N/A'",
-                    returnStdout: true
-                ).trim()
-
+                // Send failure notification with a direct link to the console log
                 slackSend(
                     channel: '#jenkins-builds',
                     color: 'danger',
-                    message: """
-:x: *BUILD FAILED* :x:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-*Job:*      ${env.JOB_NAME}
-*Build:*    #${env.BUILD_NUMBER}
-*Branch:*   ${env.BRANCH_NAME ?: 'main'}
-*Duration:* ${duration}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-:bar_chart: *Test Results*
-• Total:   ${total}
-• Passed:  ${passed} :large_green_circle:
-• Failed:  ${failed} :red_circle:
-• Skipped: ${skipped} :white_circle:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-:warning: *Failed Tests* (up to 5)
-${failedTests}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-:git: *Commit*
-• Author:  ${commitAuthor}
-• Message: ${commitMsg}
-• Hash:    \`${commitHash}\`
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-:link: *Links*
-• <${env.BUILD_URL}|Build #${env.BUILD_NUMBER}>
-• <${env.BUILD_URL}testReport|Test Report>
-• <${env.BUILD_URL}console|Console Output>
-                    """.stripIndent().trim()
+                    message: "*BUILD FAILED* :x:\n*Job:* ${env.JOB_NAME} | *Build:* #${env.BUILD_NUMBER} | *Branch:* ${env.BRANCH_NAME ?: 'main'}\n*Tests:* ${total} run | ${passed} passed | ${failed} failed | ${skipped} skipped\n*Details:* ${env.BUILD_URL}\n*Console:* ${env.BUILD_URL}console"
                 )
             }
         }
 
+        // ---------------------------------------------------------------------
+        // Always: clean the workspace to free disk space on the Jenkins agent
+        // ---------------------------------------------------------------------
         always {
             cleanWs()
         }
