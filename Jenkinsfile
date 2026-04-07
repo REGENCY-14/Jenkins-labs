@@ -44,6 +44,8 @@ pipeline {
                     // Archive raw Surefire XML results
                     junit testResults: 'target/surefire-reports/*.xml',
                           allowEmptyResults: false
+                    // Stash reports before workspace is cleaned
+                    stash name: 'surefire-reports', includes: 'target/surefire-reports/TEST-*.xml', allowEmpty: true
                 }
             }
         }
@@ -69,6 +71,7 @@ pipeline {
         success {
             echo "All tests passed. Build #${env.BUILD_NUMBER} succeeded."
             script {
+                unstash 'surefire-reports'
                 def total   = sh(script: "grep -h 'testsuite ' target/surefire-reports/TEST-*.xml | sed 's/.*tests=\"//;s/\".*//' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
                 def failed  = sh(script: "grep -h 'testsuite ' target/surefire-reports/TEST-*.xml | sed 's/.*failures=\"//;s/\".*//' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
                 def skipped = sh(script: "grep -h 'testsuite ' target/surefire-reports/TEST-*.xml | sed 's/.*skipped=\"//;s/\".*//' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
@@ -83,6 +86,7 @@ pipeline {
         failure {
             echo "Build #${env.BUILD_NUMBER} failed. Check the test report for details."
             script {
+                try { unstash 'surefire-reports' } catch (e) { echo 'No stash found' }
                 def total   = sh(script: "grep -h 'testsuite ' target/surefire-reports/TEST-*.xml 2>/dev/null | sed 's/.*tests=\"//;s/\".*//' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
                 def failed  = sh(script: "grep -h 'testsuite ' target/surefire-reports/TEST-*.xml 2>/dev/null | sed 's/.*failures=\"//;s/\".*//' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
                 def skipped = sh(script: "grep -h 'testsuite ' target/surefire-reports/TEST-*.xml 2>/dev/null | sed 's/.*skipped=\"//;s/\".*//' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
