@@ -69,9 +69,9 @@ pipeline {
         success {
             echo "All tests passed. Build #${env.BUILD_NUMBER} succeeded."
             script {
-                def total   = sh(script: "grep -h 'tests=' target/surefire-reports/TEST-*.xml | grep -oP 'tests=\"\\K[0-9]+' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
-                def failed  = sh(script: "grep -h 'failures=' target/surefire-reports/TEST-*.xml | grep -oP 'failures=\"\\K[0-9]+' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
-                def skipped = sh(script: "grep -h 'skipped=' target/surefire-reports/TEST-*.xml | grep -oP 'skipped=\"\\K[0-9]+' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
+                def total   = sh(script: "grep -h 'testsuite ' target/surefire-reports/TEST-*.xml | sed 's/.*tests=\"//;s/\".*//' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
+                def failed  = sh(script: "grep -h 'testsuite ' target/surefire-reports/TEST-*.xml | sed 's/.*failures=\"//;s/\".*//' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
+                def skipped = sh(script: "grep -h 'testsuite ' target/surefire-reports/TEST-*.xml | sed 's/.*skipped=\"//;s/\".*//' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
                 def passed  = (total.toInteger() - failed.toInteger() - skipped.toInteger()).toString()
                 slackSend(
                     channel: '#jenkins-builds',
@@ -83,9 +83,9 @@ pipeline {
         failure {
             echo "Build #${env.BUILD_NUMBER} failed. Check the test report for details."
             script {
-                def total   = sh(script: "grep -h 'tests=' target/surefire-reports/TEST-*.xml 2>/dev/null | grep -oP 'tests=\"\\K[0-9]+' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
-                def failed  = sh(script: "grep -h 'failures=' target/surefire-reports/TEST-*.xml 2>/dev/null | grep -oP 'failures=\"\\K[0-9]+' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
-                def skipped = sh(script: "grep -h 'skipped=' target/surefire-reports/TEST-*.xml 2>/dev/null | grep -oP 'skipped=\"\\K[0-9]+' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
+                def total   = sh(script: "grep -h 'testsuite ' target/surefire-reports/TEST-*.xml 2>/dev/null | sed 's/.*tests=\"//;s/\".*//' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
+                def failed  = sh(script: "grep -h 'testsuite ' target/surefire-reports/TEST-*.xml 2>/dev/null | sed 's/.*failures=\"//;s/\".*//' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
+                def skipped = sh(script: "grep -h 'testsuite ' target/surefire-reports/TEST-*.xml 2>/dev/null | sed 's/.*skipped=\"//;s/\".*//' | awk '{s+=\$1} END {print s+0}'", returnStdout: true).trim()
                 def passed  = (total.toInteger() - failed.toInteger() - skipped.toInteger()).toString()
                 slackSend(
                     channel: '#jenkins-builds',
